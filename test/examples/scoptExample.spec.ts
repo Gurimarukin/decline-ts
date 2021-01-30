@@ -5,6 +5,7 @@ import * as t from 'io-ts'
 
 import { Command, Opts } from '../../src'
 import { typeToDecode } from '../../src/utils'
+import { StringUtils } from '../../src/utils/StringUtils'
 
 const foo = pipe(
   Opts.option(typeToDecode(t.number))({
@@ -102,7 +103,17 @@ const scoptExample = Command({
 )
 
 describe('scoptExample', () => {
-  it('should parse command', () => {
-    expect(Command.parse(['update', 'stuff', 'staff'])(scoptExample)).toStrictEqual(either.right)
+  it('should fail', () => {
+    expect(Command.parse(['update', 'stuff'])(scoptExample)).toStrictEqual(
+      either.left(
+        StringUtils.stripMargins(
+          `Unexpected argument: stuff
+          |
+          |Usage: scopt-example update [--not-keepalive] [--xyz]
+          |
+          |A command! This is the command help text.`,
+        ),
+      ),
+    )
   })
 })

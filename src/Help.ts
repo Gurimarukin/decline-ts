@@ -37,7 +37,7 @@ export namespace Help {
     return {
       errors: List.empty,
       prefix: NonEmptyArray.of(parser.name),
-      usage: pipe(Usage.fromOpts(parser.opts), List.chain(Usage.show)),
+      usage: pipe(parser.opts, Usage.fromOpts, List.chain(Usage.show)),
       body: List.cons(parser.header, List.concat(optionsHelp, commandHelp)),
     }
   }

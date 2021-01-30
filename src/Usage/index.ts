@@ -114,7 +114,15 @@ const single = (opt: Opts.Opt<unknown>): List<Usage> => {
       )
 
     case 'Flag':
-      return List.of(Usage({ opts: Many.just(Options.required(`${opt.names[0]}`)) }))
+      return List.of(
+        Usage({
+          opts: Many.just(
+            Options.required(
+              `${opt.names[0] === undefined ? undefined : Opts.Name.stringify(opt.names[0])}`,
+            ),
+          ),
+        }),
+      )
 
     case 'Argument':
       return List.of(Usage({ args: Many.just(Args.required(`<${opt.metavar}>`)) }))

@@ -12,6 +12,11 @@ export const todo = (...[]: List<unknown>): never => {
   throw Error('Missing implementation')
 }
 
+export const inspect = (...label: List<unknown>) => <A>(a: A): A => {
+  console.log(...label, a)
+  return a
+}
+
 export type Dict<K extends string, A> = readonlyRecord.ReadonlyRecord<K, A>
 export const Dict = readonlyRecord
 
