@@ -22,7 +22,7 @@ const all = pipe(
   Opts.orFalse,
 )
 
-const directory = pipe(Opts.arguments_(either.right)('directory'), Opts.orEmpty)
+const directory = pipe(Opts.argumentS(either.right)('directory'), Opts.orEmpty)
 
 const listDir = Command({ name: 'ls', header: 'List information about files.' })(
   apply.sequenceT(Opts.opts)(color, all, directory),

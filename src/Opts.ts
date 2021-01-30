@@ -147,7 +147,7 @@ export namespace Opts {
     metavar = '',
   ): Opts<A> => pipe(single<string>(Opt.argument(metavar)), mapValidated(codec))
 
-  export const arguments_ = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
+  export const argumentS = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
     metavar: string,
   ): Opts<NonEmptyArray<A>> =>
     pipe(

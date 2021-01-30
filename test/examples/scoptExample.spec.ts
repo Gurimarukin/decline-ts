@@ -61,7 +61,7 @@ const debug = pipe(
   Opts.orFalse,
 )
 
-const files = pipe(Opts.arguments_(either.right)('file'), Opts.orEmpty)
+const files = pipe(Opts.argumentS(either.right)('file'), Opts.orEmpty)
 
 const update = Opts.subcommand({
   name: 'update',

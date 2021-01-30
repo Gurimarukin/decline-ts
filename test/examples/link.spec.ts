@@ -52,7 +52,7 @@ const linkTargetDirectory = (
  */
 const target = Opts.argument(either.right)('target')
 const linkName = Opts.argument(either.right)('link name')
-const targets = Opts.arguments_(either.right)('targets')
+const targets = Opts.argumentS(either.right)('targets')
 const directory = Opts.argument(either.right)('directory')
 
 const firstOpts: Opts<Link> = (() => {
