@@ -7,7 +7,7 @@ import { Help } from './Help'
 import { Opts } from './Opts'
 import { Result } from './Result'
 import { Either, List, Maybe, NonEmptyArray, NonEmptyString, Tuple } from './utils/fp'
-import { StringUtils } from './utils/StringUtils'
+import { StringUtils, s } from './utils/StringUtils'
 
 const nonEmptyString = (str: string): Maybe<Tuple<NonEmptyString, string>> =>
   StringUtils.isNonEmpty(str) ? Maybe.some([str[0], str.substring(1)]) : Maybe.none
@@ -88,11 +88,12 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
         accumulator,
         Accumulator.parseOption(Opts.Name.longName(option)),
         Maybe.fold(
-          () => Either.left(pipe(help, Help.withErrors(List.of(`Unexpected option: --${option}`)))),
+          () =>
+            Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: --${option}`)))),
           AccumulatorMatch.fold({
-            onFlag: () => failure(`Got unexpected value for flag: --${option}`),
+            onFlag: () => failure(s`Got unexpected value for flag: --${option}`),
             onOption: next => consumeAll(tail, next(value)),
-            onAmbiguous: () => failure(`Ambiguous option/flag: --${option}`),
+            onAmbiguous: () => failure(s`Ambiguous option/flag: --${option}`),
           }),
         ),
       )
@@ -107,14 +108,15 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
         accumulator,
         Accumulator.parseOption(Opts.Name.longName(option)),
         Maybe.fold(
-          () => Either.left(pipe(help, Help.withErrors(List.of(`Unexpected option: --${option}`)))),
+          () =>
+            Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: --${option}`)))),
           AccumulatorMatch.fold({
             onFlag: next => consumeAll(rest, next),
             onOption: next =>
               List.isNonEmpty(rest)
                 ? pipe(rest, ([h, ...t]) => consumeAll(t, next(h)))
-                : failure(`Missing value for option: --${option}`),
-            onAmbiguous: () => failure(`Ambiguous option/flag: --${option}`),
+                : failure(s`Missing value for option: --${option}`),
+            onAmbiguous: () => failure(s`Ambiguous option/flag: --${option}`),
           }),
         ),
       )
@@ -130,7 +132,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
       Accumulator.parseArg(arg),
       toOption,
       Maybe.fold(
-        () => failure(`Unexpected argument: ${arg}`),
+        () => failure(s`Unexpected argument: ${arg}`),
         next => consumeArgs(tail, next),
       ),
     )
@@ -155,7 +157,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
           accumulator2,
           Accumulator.parseOption(Opts.Name.shortName(char)),
           Maybe.fold(
-            () => Either.left(pipe(help, Help.withErrors(List.of(`Unexpected option: -${char}`)))),
+            () => Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: -${char}`)))),
             AccumulatorMatch.fold({
               onFlag: next =>
                 pipe(
@@ -170,13 +172,13 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
                   ? pipe(
                       NonEmptyArray.fromReadonlyArray(rest),
                       Maybe.fold(
-                        () => failure(`Missing value for option: -${char}`),
+                        () => failure(s`Missing value for option: -${char}`),
                         ([v, ...r]) =>
                           Either.right([r, next(v)] as Tuple<List<string>, Accumulator<A>>),
                       ),
                     )
                   : Either.right([rest, next(tail2)] as Tuple<List<string>, Accumulator<A>>),
-              onAmbiguous: () => failure(`Ambiguous option/flag: -${char}`),
+              onAmbiguous: () => failure(s`Ambiguous option/flag: -${char}`),
             }),
           ),
         )
@@ -199,7 +201,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
             Accumulator.parseArg(arg),
             toOption,
             Maybe.fold(
-              () => failure(`Unexpected argument: ${arg}`),
+              () => failure(s`Unexpected argument: ${arg}`),
               next => consumeAll(tail, next),
             ),
           ),

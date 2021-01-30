@@ -2,6 +2,14 @@ import { pipe } from 'fp-ts/function'
 
 import { List, Maybe, NonEmptyString, Tuple } from './fp'
 
+// interpolates.length is always strings.length - 1
+export const s = (strings: TemplateStringsArray, ...interpolates: List<string>): string =>
+  pipe(
+    strings,
+    List.zip(List.snoc(interpolates, '')),
+    List.reduce('', (acc, [a, b]) => `${acc}${a}${b}`),
+  )
+
 export namespace StringUtils {
   export const isEmpty = (str: string): str is '' => str === ''
   export const isNonEmpty = (str: string): str is NonEmptyString => !isEmpty(str)
@@ -18,7 +26,7 @@ export namespace StringUtils {
   ): (list: List<string>) => string {
     return list =>
       sep !== undefined && end !== undefined
-        ? `${startOrSep}${list.join(sep)}${end}`
+        ? s`${startOrSep}${list.join(sep)}${end}`
         : list.join(startOrSep)
   }
 

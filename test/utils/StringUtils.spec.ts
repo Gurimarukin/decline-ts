@@ -1,5 +1,16 @@
 import { Maybe } from '../../src/utils/fp'
-import { StringUtils } from '../../src/utils/StringUtils'
+import { StringUtils, s } from '../../src/utils/StringUtils'
+
+describe('s', () => {
+  it('should work', () => {
+    expect(s``).toStrictEqual('')
+    expect(s`adedigado`).toStrictEqual('adedigado')
+    expect(s`${'adedi'}gado`).toStrictEqual('adedigado')
+    expect(s`adedi${'gado'}`).toStrictEqual('adedigado')
+    expect(s`ade${'diga'}do`).toStrictEqual('adedigado')
+    expect(s`${'ad'}ediga${'do'}`).toStrictEqual('adedigado')
+  })
+})
 
 describe('StringUtils.matcher2', () => {
   it('should return two groups', () => {

@@ -5,7 +5,7 @@ import { Command } from './Command'
 import { Opts } from './Opts'
 import { Usage } from './Usage'
 import { List, Maybe, NonEmptyArray, Tuple } from './utils/fp'
-import { StringUtils } from './utils/StringUtils'
+import { StringUtils, s } from './utils/StringUtils'
 
 export type Help = {
   readonly errors: List<string>
@@ -61,10 +61,10 @@ export namespace Help {
       : pipe(help.errors, StringUtils.mkString('\n'), List.of)
     const prefixString = pipe(help.prefix, StringUtils.mkString(' '))
     const usageString = List.isEmpty(help.usage)
-      ? `Usage: ${prefixString}`
+      ? s`Usage: ${prefixString}`
       : help.usage.length === 1
-      ? `Usage: ${prefixString} ${help.usage[0]}`
-      : pipe(List.cons('Usage:', help.usage), StringUtils.mkString(`\n    ${prefixString} `))
+      ? s`Usage: ${prefixString} ${help.usage[0] as string}` // TODO: cast bad.
+      : pipe(List.cons('Usage:', help.usage), StringUtils.mkString(s`\n    ${prefixString} `))
 
     return pipe(
       List.concat(maybeErrors, List.cons(usageString, help.body)),
@@ -155,6 +155,6 @@ const detail = (opts: Opts<unknown>): List<string> =>
 const withIndent = (indent: number, str: string): string =>
   pipe(
     str.split('\n'),
-    List.map(_ => `${' '.repeat(indent)}${_}`),
+    List.map(_ => s`${' '.repeat(indent)}${_}`),
     StringUtils.mkString('\n'),
   )

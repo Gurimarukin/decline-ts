@@ -2,7 +2,7 @@ import { apply, either, option } from 'fp-ts'
 import { pipe } from 'fp-ts/function'
 
 import { Command, Opts } from '../../src'
-import { StringUtils } from '../../src/utils/StringUtils'
+import { StringUtils, s } from '../../src/utils/StringUtils'
 
 /**
  * Command parsing type
@@ -105,18 +105,18 @@ describe('git', () => {
     expect(Command.parse(['help'])(git)).toStrictEqual(
       either.left(
         StringUtils.stripMargins(
-          `Usage:
-          |    git status
-          |    git commit
-          |    git help
-          |
-          |Test app for git-style subcommands.
-          |
-          |Subcommands:
-          |    status
-          |        Print status!
-          |    commit
-          |        Commit!`,
+          s`Usage:
+           |    git status
+           |    git commit
+           |    git help
+           |
+           |Test app for git-style subcommands.
+           |
+           |Subcommands:
+           |    status
+           |        Print status!
+           |    commit
+           |        Commit!`,
         ),
       ),
     )

@@ -3,6 +3,7 @@ import { Lazy, Predicate, flow, pipe } from 'fp-ts/function'
 
 import { Command } from './Command'
 import { Dict, Either, List, Maybe, NonEmptyArray } from './utils/fp'
+import { s } from './utils/StringUtils'
 import { ValidatedNea } from './ValidatedNea'
 
 const URI_ = 'Opts'
@@ -258,7 +259,7 @@ export namespace Opts {
     export const shortName = (flag: string): ShortName => ({ _tag: 'ShortName', flag })
 
     export const stringify = (name: Name): string =>
-      name._tag === 'LongName' ? `--${name.flag}` : `-${name.flag}`
+      name._tag === 'LongName' ? s`--${name.flag}` : s`-${name.flag}`
 
     export const namesFor = (long: string, short: string): ReadonlyArray<Name> =>
       List.cons<Name>(longName(long), short.split('').map(shortName))
