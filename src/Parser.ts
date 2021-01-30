@@ -12,12 +12,18 @@ import { StringUtils } from './utils/StringUtils'
 const nonEmptyString = (str: string): Maybe<Tuple<NonEmptyString, string>> =>
   StringUtils.isNonEmpty(str) ? Maybe.some([str[0], str.substring(1)]) : Maybe.none
 
-export const longOpt: (str: string) => Maybe<string> = StringUtils.matcher1(/--(.+)/)
+const regex = {
+  longOpt: /^--(.+)$/,
+  longOptWithEquals: /^--(.+?)=(.+)$/,
+  shortOpt: /^-(.+)$/,
+}
+
+export const longOpt: (str: string) => Maybe<string> = StringUtils.matcher1(regex.longOpt)
 export const longOptWithEquals: (
   str: string,
-) => Maybe<Tuple<string, string>> = StringUtils.matcher2(/--(.+?)=(.+)/)
+) => Maybe<Tuple<string, string>> = StringUtils.matcher2(regex.longOptWithEquals)
 export const shortOpt: (str: string) => Maybe<Tuple<string, string>> = flow(
-  StringUtils.matcher1(/-(.+)/),
+  StringUtils.matcher1(regex.shortOpt),
   Maybe.chain(nonEmptyString),
 )
 

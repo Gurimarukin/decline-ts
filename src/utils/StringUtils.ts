@@ -22,12 +22,20 @@ export namespace StringUtils {
         : list.join(startOrSep)
   }
 
-  const matcher = <A>(regex: RegExp, f: (arr: RegExpMatchArray) => A) => (str: string): Maybe<A> =>
-    pipe(str.match(regex), Maybe.fromNullable, Maybe.map(f))
+  const matcher = <A>(regex: RegExp, f: (arr: RegExpMatchArray) => Maybe<A>) => (
+    str: string,
+  ): Maybe<A> => pipe(str.match(regex), Maybe.fromNullable, Maybe.chain(f))
 
   export const matcher1 = (regex: RegExp): ((str: string) => Maybe<string>) =>
-    matcher(regex, ([, a]) => a as string)
+    matcher(regex, ([, a]) => Maybe.fromNullable(a))
 
   export const matcher2 = (regex: RegExp): ((str: string) => Maybe<Tuple<string, string>>) =>
-    matcher(regex, ([, a, b]) => [a as string, b as string])
+    matcher(regex, ([, _1, _2]) =>
+      pipe(
+        Maybe.fromNullable(_1),
+        Maybe.bindTo('a'),
+        Maybe.bind('b', () => Maybe.fromNullable(_2)),
+        Maybe.map(({ a, b }) => [a, b]),
+      ),
+    )
 }
