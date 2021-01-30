@@ -1,0 +1,13 @@
+{
+  "extends": "@type-config/strict",
+  "compilerOptions": {
+    "outDir": "./lib",
+    "module": "es6",
+    "incremental": true,
+    "noEmit": true,
+    "sourceMap": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["./src", "./test"]
+}
