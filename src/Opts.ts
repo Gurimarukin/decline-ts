@@ -6,6 +6,8 @@ import { Dict, Either, List, Maybe, NonEmptyArray } from './utils/fp'
 import { s } from './utils/StringUtils'
 import { ValidatedNea } from './ValidatedNea'
 
+type Validation<A> = (raw: string) => ValidatedNea<string, A>
+
 const URI_ = 'Opts'
 type URI_ = typeof URI_
 
@@ -114,26 +116,28 @@ export namespace Opts {
 
   export const unit: Opts<void> = pure(undefined)
 
-  export const option = <A>(codec: (raw: string) => ValidatedNea<string, A>) => ({
-    long,
-    help,
-    short = '',
-    metavar,
-  }: OptionArgs): Opts<A> =>
-    pipe(single(Opt.regular(Name.namesFor(long, short), metavar, help)), mapValidated(codec))
+  export function option(): (args: OptionArgs) => Opts<string>
+  export function option<A>(codec: Validation<A>): (args: OptionArgs) => Opts<A>
+  export function option<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (args: OptionArgs) => Opts<A> {
+    return ({ long, help, short = '', metavar }) =>
+      pipe(single(Opt.regular(Name.namesFor(long, short), metavar, help)), mapValidated(codec))
+  }
 
-  export const options = <A>(codec: (raw: string) => ValidatedNea<string, A>) => ({
-    long,
-    help,
-    short = '',
-    metavar,
-  }: OptionArgs): Opts<NonEmptyArray<A>> =>
-    pipe(
-      repeated<string>(Opt.regular(Name.namesFor(long, short), metavar, help)),
-      mapValidated(args =>
-        NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
-      ),
-    )
+  export function options(): (args: OptionArgs) => Opts<NonEmptyArray<string>>
+  export function options<A>(codec: Validation<A>): (args: OptionArgs) => Opts<NonEmptyArray<A>>
+  export function options<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (args: OptionArgs) => Opts<NonEmptyArray<A>> {
+    return ({ long, help, short = '', metavar }) =>
+      pipe(
+        repeated<string>(Opt.regular(Name.namesFor(long, short), metavar, help)),
+        mapValidated(args =>
+          NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
+        ),
+      )
+  }
 
   export const flag = ({ long, help, short = '' }: FlagArgs): Opts<void> =>
     single(Opt.flag(Name.namesFor(long, short), help))
@@ -144,35 +148,51 @@ export namespace Opts {
       map(l => l.length),
     )
 
-  export const argument = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
-    metavar = '',
-  ): Opts<A> => pipe(single<string>(Opt.argument(metavar)), mapValidated(codec))
+  export function argument(): (metavar?: string) => Opts<string>
+  export function argument<A>(codec: Validation<A>): (metavar?: string) => Opts<A>
+  export function argument<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (metavar?: string) => Opts<A> {
+    return (metavar = '') => pipe(single<string>(Opt.argument(metavar)), mapValidated(codec))
+  }
 
-  export const argumentS = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
-    metavar: string,
-  ): Opts<NonEmptyArray<A>> =>
-    pipe(
-      repeated<string>(Opt.argument(metavar)),
-      mapValidated(args =>
-        NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
-      ),
-    )
+  export function argumentS(): (metavar: string) => Opts<NonEmptyArray<string>>
+  export function argumentS<A>(codec: Validation<A>): (metavar: string) => Opts<NonEmptyArray<A>>
+  export function argumentS<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (metavar: string) => Opts<NonEmptyArray<A>> {
+    return metavar =>
+      pipe(
+        repeated<string>(Opt.argument(metavar)),
+        mapValidated(args =>
+          NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
+        ),
+      )
+  }
 
-  export const param = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
-    metavar: string,
-  ): Opts<A> => pipe(single(Opt.argument(metavar)), mapValidated(codec))
+  export function param(): (metavar: string) => Opts<string>
+  export function param<A>(codec: Validation<A>): (metavar: string) => Opts<A>
+  export function param<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (metavar: string) => Opts<A> {
+    return metavar => pipe(single(Opt.argument(metavar)), mapValidated(codec))
+  }
 
-  export const params = <A>(codec: (raw: string) => ValidatedNea<string, A>) => (
-    metavar: string,
-  ): Opts<NonEmptyArray<A>> =>
-    pipe(
-      repeated<string>(Opt.argument(metavar)),
-      mapValidated(args =>
-        NonEmptyArray.readonlyNonEmptyArray.traverse(
-          Either.getValidation(NonEmptyArray.getSemigroup<string>()),
-        )(args, codec),
-      ),
-    )
+  export function params(): (metavar: string) => Opts<NonEmptyArray<string>>
+  export function params<A>(codec: Validation<A>): (metavar: string) => Opts<NonEmptyArray<A>>
+  export function params<A>(
+    codec: Validation<A> = Either.right as Validation<A>,
+  ): (metavar: string) => Opts<NonEmptyArray<A>> {
+    return metavar =>
+      pipe(
+        repeated<string>(Opt.argument(metavar)),
+        mapValidated(args =>
+          NonEmptyArray.readonlyNonEmptyArray.traverse(
+            Either.getValidation(NonEmptyArray.getSemigroup<string>()),
+          )(args, codec),
+        ),
+      )
+  }
 
   /**
    * Methods
