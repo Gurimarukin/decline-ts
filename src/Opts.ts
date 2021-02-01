@@ -95,9 +95,13 @@ export namespace Opts {
 
   export const orElse = <A>(a: Opts<A>, b: Opts<A>): Opts<A> => ({ _tag: 'OrElse', a, b })
 
-  export const single = <A>(opt: Opt<A>): Single<A> => ({ _tag: 'Single', opt })
+  export function single<A>(opt: Opt<A>): Single<A> {
+    return { _tag: 'Single', opt }
+  }
 
-  export const repeated = <A>(opt: Opt<A>): Opts<NonEmptyArray<A>> => ({ _tag: 'Repeated', opt })
+  export function repeated<A>(opt: Opt<A>): Opts<NonEmptyArray<A>> {
+    return { _tag: 'Repeated', opt }
+  }
 
   export function subcommand<A>(command: Command<A>): Subcommand<A>
   export function subcommand({ name, header }: Command.Args): <B>(o: Opts<B>) => Subcommand<B>
@@ -342,18 +346,20 @@ export namespace Opts {
     const argumentEq: Eq.Eq<Argument> = Eq.getStructEq<Omit<Argument, '_tag'>>({
       metavar: Eq.eqString,
     })
-    export const eq = <A>(): Eq.Eq<Opt<A>> => ({
-      equals: (x, y) => {
-        switch (x._tag) {
-          case 'Regular':
-            return y._tag === 'Regular' ? regularEq.equals(x, y) : false
-          case 'Flag':
-            return y._tag === 'Flag' ? flagEq.equals(x, y) : false
-          case 'Argument':
-            return y._tag === 'Argument' ? argumentEq.equals(x, y) : false
-        }
-      },
-    })
+    export function eq<A>(): Eq.Eq<Opt<A>> {
+      return {
+        equals: (x, y) => {
+          switch (x._tag) {
+            case 'Regular':
+              return y._tag === 'Regular' ? regularEq.equals(x, y) : false
+            case 'Flag':
+              return y._tag === 'Flag' ? flagEq.equals(x, y) : false
+            case 'Argument':
+              return y._tag === 'Argument' ? argumentEq.equals(x, y) : false
+          }
+        },
+      }
+    }
   }
 }
 
