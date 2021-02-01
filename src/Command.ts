@@ -23,6 +23,8 @@ export namespace Command {
     readonly header: string
   }
 
+  export type TypeOf<C> = C extends Command<infer A> ? A : never
+
   export const parseHelp = <A>(args: List<string>) => (cmd: Command<A>): Either<Help, A> =>
     Parser(cmd)(args)
 
