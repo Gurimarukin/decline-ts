@@ -1,6 +1,6 @@
 {
   "name": "decline-ts",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Composable command-line parser for TypeScript - a (partial) porting of Scala decline using fp-ts",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
