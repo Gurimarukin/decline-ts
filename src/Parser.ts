@@ -9,7 +9,7 @@ import { Help } from './Help'
 import { Opts } from './Opts'
 import { Result } from './Result'
 import { NonEmptyString } from './utils/fp'
-import { StringUtils, s } from './utils/StringUtils'
+import { StringUtils } from './utils/StringUtils'
 
 const nonEmptyString = (str: string): Option<readonly [NonEmptyString, string]> =>
   StringUtils.isNonEmpty(str) ? option.some([str[0], str.substring(1)]) : option.none
@@ -92,13 +92,11 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
         Accumulator.parseOption(Opts.Name.longName(o)),
         option.fold(
           () =>
-            either.left(
-              pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: --${o}`))),
-            ),
+            either.left(pipe(help, Help.withErrors(readonlyArray.of(`Unexpected option: --${o}`)))),
           AccumulatorMatch.fold({
-            onFlag: () => failure(s`Got unexpected value for flag: --${o}`),
+            onFlag: () => failure(`Got unexpected value for flag: --${o}`),
             onOption: next => consumeAll(tail, next(value)),
-            onAmbiguous: () => failure(s`Ambiguous option/flag: --${o}`),
+            onAmbiguous: () => failure(`Ambiguous option/flag: --${o}`),
           }),
         ),
       )
@@ -114,16 +112,14 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
         Accumulator.parseOption(Opts.Name.longName(o)),
         option.fold(
           () =>
-            either.left(
-              pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: --${o}`))),
-            ),
+            either.left(pipe(help, Help.withErrors(readonlyArray.of(`Unexpected option: --${o}`)))),
           AccumulatorMatch.fold({
             onFlag: next => consumeAll(rest, next),
             onOption: next =>
               readonlyArray.isNonEmpty(rest)
                 ? pipe(rest, ([h, ...t]) => consumeAll(t, next(h)))
-                : failure(s`Missing value for option: --${o}`),
-            onAmbiguous: () => failure(s`Ambiguous option/flag: --${o}`),
+                : failure(`Missing value for option: --${o}`),
+            onAmbiguous: () => failure(`Ambiguous option/flag: --${o}`),
           }),
         ),
       )
@@ -139,7 +135,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
       Accumulator.parseArg(arg),
       toOption,
       option.fold(
-        () => failure(s`Unexpected argument: ${arg}`),
+        () => failure(`Unexpected argument: ${arg}`),
         next => consumeArgs(tail, next),
       ),
     )
@@ -166,7 +162,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
           option.fold(
             () =>
               either.left(
-                pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: -${char}`))),
+                pipe(help, Help.withErrors(readonlyArray.of(`Unexpected option: -${char}`))),
               ),
             AccumulatorMatch.fold({
               onFlag: next =>
@@ -186,7 +182,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
                   ? pipe(
                       readonlyNonEmptyArray.fromReadonlyArray(rest),
                       option.fold(
-                        () => failure(s`Missing value for option: -${char}`),
+                        () => failure(`Missing value for option: -${char}`),
                         ([v, ...r]) =>
                           either.right([r, next(v)] as readonly [
                             ReadonlyArray<string>,
@@ -198,7 +194,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
                       ReadonlyArray<string>,
                       Accumulator<A>,
                     ]),
-              onAmbiguous: () => failure(s`Ambiguous option/flag: -${char}`),
+              onAmbiguous: () => failure(`Ambiguous option/flag: -${char}`),
             }),
           ),
         )
@@ -221,7 +217,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
             Accumulator.parseArg(arg),
             toOption,
             option.fold(
-              () => failure(s`Unexpected argument: ${arg}`),
+              () => failure(`Unexpected argument: ${arg}`),
               next => consumeAll(tail, next),
             ),
           ),

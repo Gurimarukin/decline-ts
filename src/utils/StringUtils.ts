@@ -1,16 +1,8 @@
-import { option, readonlyArray } from 'fp-ts'
+import { option } from 'fp-ts'
 import { pipe } from 'fp-ts/function'
 import { Option } from 'fp-ts/Option'
 
 import { NonEmptyString } from './fp'
-
-// interpolates.length is always strings.length - 1
-export const s = (strings: TemplateStringsArray, ...interpolates: ReadonlyArray<string>): string =>
-  pipe(
-    strings,
-    readonlyArray.zip(readonlyArray.snoc(interpolates, '')),
-    readonlyArray.reduce('', (acc, [a, b]) => `${acc}${a}${b}`),
-  )
 
 export namespace StringUtils {
   export const isEmpty = (str: string): str is '' => str === ''
@@ -32,7 +24,7 @@ export namespace StringUtils {
   ): (list: ReadonlyArray<string>) => string {
     return list =>
       sep !== undefined && end !== undefined
-        ? s`${startOrSep}${list.join(sep)}${end}`
+        ? `${startOrSep}${list.join(sep)}${end}`
         : list.join(startOrSep)
   }
 

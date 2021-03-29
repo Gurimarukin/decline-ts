@@ -6,7 +6,7 @@ import { ReadonlyNonEmptyArray } from 'fp-ts/ReadonlyNonEmptyArray'
 import { Command } from './Command'
 import { Opts } from './Opts'
 import { Usage } from './Usage'
-import { StringUtils, s } from './utils/StringUtils'
+import { StringUtils } from './utils/StringUtils'
 
 export type Help = {
   readonly errors: ReadonlyArray<string>
@@ -74,12 +74,12 @@ export namespace Help {
       : pipe(help.errors, StringUtils.mkString('\n'), readonlyArray.of)
     const prefixString = pipe(help.prefix, StringUtils.mkString(' '))
     const usageString = readonlyArray.isEmpty(help.usage)
-      ? s`Usage: ${prefixString}`
+      ? `Usage: ${prefixString}`
       : help.usage.length === 1
-      ? s`Usage: ${prefixString} ${help.usage[0] as string}` // TODO: cast bad.
+      ? `Usage: ${prefixString} ${help.usage[0] as string}` // TODO: cast bad.
       : pipe(
           readonlyArray.cons('Usage:', help.usage),
-          StringUtils.mkString(s`\n    ${prefixString} `),
+          StringUtils.mkString(`\n    ${prefixString} `),
         )
 
     return pipe(
@@ -175,6 +175,6 @@ const detail = (opts: Opts<unknown>): ReadonlyArray<string> =>
 const withIndent = (indent: number, str: string): string =>
   pipe(
     str.split('\n'),
-    readonlyArray.map(_ => s`${' '.repeat(indent)}${_}`),
+    readonlyArray.map(_ => `${' '.repeat(indent)}${_}`),
     StringUtils.mkString('\n'),
   )

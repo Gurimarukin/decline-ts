@@ -4,7 +4,7 @@ import { Option } from 'fp-ts/Option'
 
 import { Opts } from '../Opts'
 import { arrayHasLength1 } from '../utils/fp'
-import { StringUtils, s } from '../utils/StringUtils'
+import { StringUtils } from '../utils/StringUtils'
 import { Args } from './Args'
 import { Many } from './Many'
 import { Options } from './Options'
@@ -110,7 +110,7 @@ const single = (opt: Opts.Opt<unknown>): ReadonlyArray<Usage> => {
           opts: Many.just(
             Options.required(
               // TODO: cast bad.
-              s`${Opts.Name.stringify(opt.names[0] as Opts.Name)} <${opt.metavar}>`,
+              `${Opts.Name.stringify(opt.names[0] as Opts.Name)} <${opt.metavar}>`,
             ),
           ),
         }),
@@ -121,14 +121,14 @@ const single = (opt: Opts.Opt<unknown>): ReadonlyArray<Usage> => {
         Usage({
           opts: Many.just(
             Options.required(
-              s`${Opts.Name.stringify(opt.names[0] as Opts.Name)}`, // TODO: cast bad.
+              `${Opts.Name.stringify(opt.names[0] as Opts.Name)}`, // TODO: cast bad.
             ),
           ),
         }),
       )
 
     case 'Argument':
-      return readonlyArray.of(Usage({ args: Many.just(Args.required(s`<${opt.metavar}>`)) }))
+      return readonlyArray.of(Usage({ args: Many.just(Args.required(`<${opt.metavar}>`)) }))
   }
 }
 
@@ -140,7 +140,7 @@ const repeated = (opt: Opts.Opt<unknown>): ReadonlyArray<Usage> => {
           opts: Many.just(
             Options.repeated(
               // TODO: cast bad.
-              s`${Opts.Name.stringify(opt.names[0] as Opts.Name)} <${opt.metavar}>`,
+              `${Opts.Name.stringify(opt.names[0] as Opts.Name)} <${opt.metavar}>`,
             ),
           ),
         }),
@@ -152,14 +152,14 @@ const repeated = (opt: Opts.Opt<unknown>): ReadonlyArray<Usage> => {
           opts: Many.just(
             Options.repeated(
               // TODO: cast bad.
-              s`${Opts.Name.stringify(opt.names[0] as Opts.Name)}`,
+              `${Opts.Name.stringify(opt.names[0] as Opts.Name)}`,
             ),
           ),
         }),
       )
 
     case 'Argument':
-      return readonlyArray.of(Usage({ args: Many.just(Args.repeated(s`<${opt.metavar}>`)) }))
+      return readonlyArray.of(Usage({ args: Many.just(Args.repeated(`<${opt.metavar}>`)) }))
   }
 }
 
@@ -194,7 +194,7 @@ const showOptions = (opts: Many<Options>): ReadonlyArray<string> => {
           l =>
             // l matches readonlyArray.of(Many.just(Options.Repeated(_)))
             arrayHasLength1(l) && Many.isJust(l[0]) && Options.isRepeated(l[0].value)
-              ? readonlyArray.of(s`[${l[0].value.text}]...`)
+              ? readonlyArray.of(`[${l[0].value.text}]...`)
               : l.map(flow(showOptions, StringUtils.mkString('[', ' | ', ']'))), // decline uses traverse ¯\_(ツ)_/¯
         ),
       )
@@ -205,7 +205,7 @@ const showOptions = (opts: Many<Options>): ReadonlyArray<string> => {
         case 'Required':
           return readonlyArray.of(o.text)
         case 'Repeated':
-          return readonlyArray.of(s`${o.text} [${o.text}]...`)
+          return readonlyArray.of(`${o.text} [${o.text}]...`)
       }
 
     case 'Prod':
@@ -236,7 +236,7 @@ const showArgs = (args: Many<Args>): ReadonlyArray<string> => {
         case 'Required':
           return readonlyArray.of(arg.metavar)
         case 'Repeated':
-          return readonlyArray.of(s`${arg.metavar}...`)
+          return readonlyArray.of(`${arg.metavar}...`)
         case 'Command':
           return readonlyArray.of(arg.name)
       }

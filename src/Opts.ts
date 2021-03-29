@@ -14,7 +14,6 @@ import { Option } from 'fp-ts/Option'
 import { ReadonlyNonEmptyArray } from 'fp-ts/ReadonlyNonEmptyArray'
 
 import { Command } from './Command'
-import { s } from './utils/StringUtils'
 import { ValidatedNea } from './ValidatedNea'
 
 type Validation<A> = (raw: string) => ValidatedNea<string, A>
@@ -300,7 +299,7 @@ export namespace Opts {
     export const shortName = (flag: string): ShortName => ({ _tag: 'ShortName', flag })
 
     export const stringify = (name: Name): string =>
-      name._tag === 'LongName' ? s`--${name.flag}` : s`-${name.flag}`
+      name._tag === 'LongName' ? `--${name.flag}` : `-${name.flag}`
 
     export const namesFor = (long: string, short: string): ReadonlyArray<Name> =>
       readonlyArray.cons<Name>(longName(long), short.split('').map(shortName))
