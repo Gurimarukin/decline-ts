@@ -1,5 +1,3 @@
-import { List } from '../utils/fp'
-
 export type Many<A> = Many.Just<A> | Many.Prod<A> | Many.Sum<A>
 
 export namespace Many {
@@ -10,20 +8,20 @@ export namespace Many {
 
   export type Prod<A> = {
     readonly _tag: 'Prod'
-    readonly allOf: List<Many<A>>
+    readonly allOf: ReadonlyArray<Many<A>>
   }
 
   export type Sum<A> = {
     readonly _tag: 'Sum'
-    readonly anyOf: List<Many<A>>
+    readonly anyOf: ReadonlyArray<Many<A>>
   }
 
   /**
    * Constructors
    */
   export const just = <A>(value: A): Just<A> => ({ _tag: 'Just', value })
-  export const prod = <A>(...allOf: List<Many<A>>): Prod<A> => ({ _tag: 'Prod', allOf })
-  export const sum = <A>(...anyOf: List<Many<A>>): Sum<A> => ({ _tag: 'Sum', anyOf })
+  export const prod = <A>(...allOf: ReadonlyArray<Many<A>>): Prod<A> => ({ _tag: 'Prod', allOf })
+  export const sum = <A>(...anyOf: ReadonlyArray<Many<A>>): Sum<A> => ({ _tag: 'Sum', anyOf })
 
   /**
    * Methods
@@ -36,11 +34,10 @@ export namespace Many {
 
   export namespace Prod {
     export const and = <A>(other: Prod<A>) => (p: Prod<A>): Prod<A> =>
-      prod(...List.concat(p.allOf, other.allOf))
+      prod(...p.allOf, ...other.allOf)
   }
 
   export namespace Sum {
-    export const or = <A>(other: Sum<A>) => (s: Sum<A>): Sum<A> =>
-      sum(...List.concat(s.anyOf, other.anyOf))
+    export const or = <A>(other: Sum<A>) => (s: Sum<A>): Sum<A> => sum(...s.anyOf, ...other.anyOf)
   }
 }

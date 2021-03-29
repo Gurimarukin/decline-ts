@@ -1,7 +1,7 @@
+import { either, option, readonlyNonEmptyArray } from 'fp-ts'
 import { pipe } from 'fp-ts/function'
 
 import { Result } from '../../Result'
-import { Either, Maybe, NonEmptyArray } from '../../utils/fp'
 import { Accumulator, AccumulatorHKT } from '../index'
 import { Match } from '../Match'
 
@@ -27,29 +27,29 @@ export const orElse: AccumulatorHKT<URI> = {
     const left = pipe(fa.left, Accumulator.parseOption(name))
     const right = pipe(fa.right, Accumulator.parseOption(name))
 
-    if (Maybe.isSome(left) && Maybe.isSome(right)) {
+    if (option.isSome(left) && option.isSome(right)) {
       const matchLeft = left.value
       const matchRight = right.value
 
       if (Match.isMatchFlag(matchLeft) && Match.isMatchFlag(matchRight)) {
-        return Maybe.some(Match.matchFlag(of(matchLeft.next, matchRight.next)))
+        return option.some(Match.matchFlag(of(matchLeft.next, matchRight.next)))
       }
 
       if (Match.isMatchOption(matchLeft) && Match.isMatchOption(matchRight)) {
-        return Maybe.some(Match.matchOption(v => of(matchLeft.next(v), matchRight.next(v))))
+        return option.some(Match.matchOption(v => of(matchLeft.next(v), matchRight.next(v))))
       }
 
-      return Maybe.some(Match.matchAmbiguous)
+      return option.some(Match.matchAmbiguous)
     }
 
-    if (Maybe.isSome(left) && Maybe.isNone(right)) return left
-    if (Maybe.isNone(left) && Maybe.isSome(right)) return right
+    if (option.isSome(left) && option.isNone(right)) return left
+    if (option.isNone(left) && option.isSome(right)) return right
 
-    return Maybe.none
+    return option.none
   },
 
   parseArg: arg => fa =>
-    NonEmptyArray.concat(
+    readonlyNonEmptyArray.concat(
       pipe(fa.left, Accumulator.parseArg(arg)),
       pipe(fa.right, Accumulator.parseArg(arg)),
     ),
@@ -58,15 +58,15 @@ export const orElse: AccumulatorHKT<URI> = {
     const resLeft = pipe(fa.left, Accumulator.parseSub(command))
     const resRight = pipe(fa.right, Accumulator.parseSub(command))
 
-    if (Maybe.isSome(resLeft) && Maybe.isSome(resRight)) {
-      return Maybe.some(args => {
+    if (option.isSome(resLeft) && option.isSome(resRight)) {
+      return option.some(args => {
         const lh = resLeft.value(args)
-        if (Either.isLeft(lh)) return lh
+        if (either.isLeft(lh)) return lh
 
         const rh = resRight.value(args)
-        if (Either.isLeft(rh)) return rh
+        if (either.isLeft(rh)) return rh
 
-        return Either.right(
+        return either.right(
           pipe(
             lh.right,
             Result.alt(() => rh.right),
@@ -75,10 +75,10 @@ export const orElse: AccumulatorHKT<URI> = {
       })
     }
 
-    if (Maybe.isSome(resLeft) && Maybe.isNone(resRight)) return resLeft
-    if (Maybe.isNone(resLeft) && Maybe.isSome(resRight)) return resRight
+    if (option.isSome(resLeft) && option.isNone(resRight)) return resLeft
+    if (option.isNone(resLeft) && option.isSome(resRight)) return resRight
 
-    return Maybe.none
+    return option.none
   },
 
   result: fa =>

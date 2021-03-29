@@ -1,8 +1,19 @@
-import { alt as Alt, eq as Eq, applicative, apply } from 'fp-ts'
+import {
+  alt as Alt,
+  eq as Eq,
+  applicative,
+  apply,
+  either,
+  option as maybe,
+  readonlyArray,
+  readonlyNonEmptyArray,
+  readonlyRecord,
+} from 'fp-ts'
 import { Lazy, Predicate, flow, pipe } from 'fp-ts/function'
+import { Option } from 'fp-ts/Option'
+import { ReadonlyNonEmptyArray } from 'fp-ts/ReadonlyNonEmptyArray'
 
 import { Command } from './Command'
-import { Dict, Either, List, Maybe, NonEmptyArray } from './utils/fp'
 import { s } from './utils/StringUtils'
 import { ValidatedNea } from './ValidatedNea'
 
@@ -99,7 +110,7 @@ export namespace Opts {
     return { _tag: 'Single', opt }
   }
 
-  export function repeated<A>(opt: Opt<A>): Opts<NonEmptyArray<A>> {
+  export function repeated<A>(opt: Opt<A>): Opts<ReadonlyNonEmptyArray<A>> {
     return { _tag: 'Repeated', opt }
   }
 
@@ -123,22 +134,24 @@ export namespace Opts {
   export function option(): (args: OptionArgs) => Opts<string>
   export function option<A>(codec: Validation<A>): (args: OptionArgs) => Opts<A>
   export function option<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
+    codec: Validation<A> = either.right as Validation<A>,
   ): (args: OptionArgs) => Opts<A> {
     return ({ long, help, short = '', metavar }) =>
       pipe(single(Opt.regular(Name.namesFor(long, short), metavar, help)), mapValidated(codec))
   }
 
-  export function options(): (args: OptionArgs) => Opts<NonEmptyArray<string>>
-  export function options<A>(codec: Validation<A>): (args: OptionArgs) => Opts<NonEmptyArray<A>>
+  export function options(): (args: OptionArgs) => Opts<ReadonlyNonEmptyArray<string>>
   export function options<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
-  ): (args: OptionArgs) => Opts<NonEmptyArray<A>> {
+    codec: Validation<A>,
+  ): (args: OptionArgs) => Opts<ReadonlyNonEmptyArray<A>>
+  export function options<A>(
+    codec: Validation<A> = either.right as Validation<A>,
+  ): (args: OptionArgs) => Opts<ReadonlyNonEmptyArray<A>> {
     return ({ long, help, short = '', metavar }) =>
       pipe(
         repeated<string>(Opt.regular(Name.namesFor(long, short), metavar, help)),
         mapValidated(args =>
-          NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
+          readonlyNonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
         ),
       )
   }
@@ -155,21 +168,23 @@ export namespace Opts {
   export function argument(): (metavar?: string) => Opts<string>
   export function argument<A>(codec: Validation<A>): (metavar?: string) => Opts<A>
   export function argument<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
+    codec: Validation<A> = either.right as Validation<A>,
   ): (metavar?: string) => Opts<A> {
     return (metavar = '') => pipe(single<string>(Opt.argument(metavar)), mapValidated(codec))
   }
 
-  export function argumentS(): (metavar: string) => Opts<NonEmptyArray<string>>
-  export function argumentS<A>(codec: Validation<A>): (metavar: string) => Opts<NonEmptyArray<A>>
+  export function argumentS(): (metavar: string) => Opts<ReadonlyNonEmptyArray<string>>
   export function argumentS<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
-  ): (metavar: string) => Opts<NonEmptyArray<A>> {
+    codec: Validation<A>,
+  ): (metavar: string) => Opts<ReadonlyNonEmptyArray<A>>
+  export function argumentS<A>(
+    codec: Validation<A> = either.right as Validation<A>,
+  ): (metavar: string) => Opts<ReadonlyNonEmptyArray<A>> {
     return metavar =>
       pipe(
         repeated<string>(Opt.argument(metavar)),
         mapValidated(args =>
-          NonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
+          readonlyNonEmptyArray.readonlyNonEmptyArray.traverse(stringValidation)(args, codec),
         ),
       )
   }
@@ -177,22 +192,24 @@ export namespace Opts {
   export function param(): (metavar: string) => Opts<string>
   export function param<A>(codec: Validation<A>): (metavar: string) => Opts<A>
   export function param<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
+    codec: Validation<A> = either.right as Validation<A>,
   ): (metavar: string) => Opts<A> {
     return metavar => pipe(single(Opt.argument(metavar)), mapValidated(codec))
   }
 
-  export function params(): (metavar: string) => Opts<NonEmptyArray<string>>
-  export function params<A>(codec: Validation<A>): (metavar: string) => Opts<NonEmptyArray<A>>
+  export function params(): (metavar: string) => Opts<ReadonlyNonEmptyArray<string>>
   export function params<A>(
-    codec: Validation<A> = Either.right as Validation<A>,
-  ): (metavar: string) => Opts<NonEmptyArray<A>> {
+    codec: Validation<A>,
+  ): (metavar: string) => Opts<ReadonlyNonEmptyArray<A>>
+  export function params<A>(
+    codec: Validation<A> = either.right as Validation<A>,
+  ): (metavar: string) => Opts<ReadonlyNonEmptyArray<A>> {
     return metavar =>
       pipe(
         repeated<string>(Opt.argument(metavar)),
         mapValidated(args =>
-          NonEmptyArray.readonlyNonEmptyArray.traverse(
-            Either.getValidation(NonEmptyArray.getSemigroup<string>()),
+          readonlyNonEmptyArray.readonlyNonEmptyArray.traverse(
+            either.getValidation(readonlyNonEmptyArray.getSemigroup<string>()),
           )(args, codec),
         ),
       )
@@ -205,7 +222,7 @@ export namespace Opts {
     fa: Opts<A>,
   ): Opts<B> =>
     fa._tag === 'Validate'
-      ? Validate(fa.value, flow(fa.validate, Either.chain(f)))
+      ? Validate(fa.value, flow(fa.validate, either.chain(f)))
       : Validate(fa, f)
 
   export const validate = (message: string) => <A>(pred: Predicate<A>) => (fa: Opts<A>): Opts<A> =>
@@ -216,17 +233,17 @@ export namespace Opts {
 
   export const withDefault = <A>(fy: Lazy<A>): ((fa: Opts<A>) => Opts<A>) => alt(() => pure(fy()))
 
-  export const orNone = <A>(fa: Opts<A>): Opts<Maybe<A>> =>
+  export const orNone = <A>(fa: Opts<A>): Opts<Option<A>> =>
     pipe(
       fa,
-      map(Maybe.some),
-      withDefault<Maybe<A>>(() => Maybe.none),
+      map(maybe.some),
+      withDefault<Option<A>>(() => maybe.none),
     )
 
-  export const orEmpty = <A>(fa: Opts<NonEmptyArray<A>>): Opts<List<A>> =>
+  export const orEmpty = <A>(fa: Opts<ReadonlyNonEmptyArray<A>>): Opts<ReadonlyArray<A>> =>
     pipe(
       fa,
-      withDefault<List<A>>(() => []),
+      withDefault<ReadonlyArray<A>>(() => []),
     )
 
   export const orFalse = (fa: Opts<unknown>): Opts<boolean> =>
@@ -244,7 +261,7 @@ export namespace Opts {
     )
 
   export const map = <A, B>(f: (a: A) => B) => (fa: Opts<A>): Opts<B> =>
-    mapValidated(flow(f, Either.right))(fa)
+    mapValidated(flow(f, either.right))(fa)
   export const ap = <A, B>(fab: Opts<(a: A) => B>) => (fa: Opts<A>): Opts<B> => app(fab, fa)
   export const alt = <A>(that: Lazy<Opts<A>>) => (fa: Opts<A>): Opts<A> => orElse(fa, that())
 
@@ -286,7 +303,7 @@ export namespace Opts {
       name._tag === 'LongName' ? s`--${name.flag}` : s`-${name.flag}`
 
     export const namesFor = (long: string, short: string): ReadonlyArray<Name> =>
-      List.cons<Name>(longName(long), short.split('').map(shortName))
+      readonlyArray.cons<Name>(longName(long), short.split('').map(shortName))
 
     export const eq = Eq.getStructEq<Name>({
       _tag: Eq.eqString,
@@ -303,14 +320,14 @@ export namespace Opts {
   export namespace Opt {
     export type Regular = {
       readonly _tag: 'Regular'
-      readonly names: List<Name>
+      readonly names: ReadonlyArray<Name>
       readonly metavar: string
       readonly help: string
     }
 
     export type Flag = {
       readonly _tag: 'Flag'
-      readonly names: List<Name>
+      readonly names: ReadonlyArray<Name>
       readonly help: string
     }
 
@@ -319,14 +336,18 @@ export namespace Opts {
       readonly metavar: string
     }
 
-    export const regular = (names: List<Name>, metavar: string, help: string): Opt<string> => ({
+    export const regular = (
+      names: ReadonlyArray<Name>,
+      metavar: string,
+      help: string,
+    ): Opt<string> => ({
       _tag: 'Regular',
       names,
       metavar,
       help,
     })
     // eslint-disable-next-line no-shadow
-    export const flag = (names: List<Name>, help: string): Opt<void> => ({
+    export const flag = (names: ReadonlyArray<Name>, help: string): Opt<void> => ({
       _tag: 'Flag',
       names,
       help,
@@ -335,12 +356,12 @@ export namespace Opts {
     export const argument = (metavar: string): Opt<string> => ({ _tag: 'Argument', metavar })
 
     const regularEq: Eq.Eq<Regular> = Eq.getStructEq<Omit<Regular, '_tag'>>({
-      names: List.getEq(Name.eq),
+      names: readonlyArray.getEq(Name.eq),
       metavar: Eq.eqString,
       help: Eq.eqString,
     })
     const flagEq: Eq.Eq<Flag> = Eq.getStructEq<Omit<Flag, '_tag'>>({
-      names: List.getEq(Name.eq),
+      names: readonlyArray.getEq(Name.eq),
       help: Eq.eqString,
     })
     const argumentEq: Eq.Eq<Argument> = Eq.getStructEq<Omit<Argument, '_tag'>>({
@@ -365,13 +386,13 @@ export namespace Opts {
 
 const stringValidation: applicative.Applicative2C<
   'Either',
-  NonEmptyArray<string>
-> = Either.getValidation(NonEmptyArray.getSemigroup<string>())
+  ReadonlyNonEmptyArray<string>
+> = either.getValidation(readonlyNonEmptyArray.getSemigroup<string>())
 
 const tagKey = '_tag'
 const tagVal: Command<unknown>[typeof tagKey] = 'Command'
 const isCommand = <A>(arg: Command<A> | Command.Args): arg is Command<A> =>
   pipe(
-    Dict.lookup(tagKey, arg),
-    Maybe.exists(t => t === tagVal),
+    readonlyRecord.lookup(tagKey, arg),
+    maybe.exists(t => t === tagVal),
   )

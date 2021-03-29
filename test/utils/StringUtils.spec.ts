@@ -1,4 +1,5 @@
-import { Maybe } from '../../src/utils/fp'
+import { option } from 'fp-ts'
+
 import { StringUtils, s } from '../../src/utils/StringUtils'
 
 describe('s', () => {
@@ -15,11 +16,11 @@ describe('s', () => {
 describe('StringUtils.matcher2', () => {
   it('should return two groups', () => {
     expect(StringUtils.matcher2(/^(\S+)\s+(\S+)$/)('some string')).toStrictEqual(
-      Maybe.some(['some', 'string']),
+      option.some(['some', 'string']),
     )
   })
 
   it('should fail for regex with one group', () => {
-    expect(StringUtils.matcher2(/^(.*)$/)('some string')).toStrictEqual(Maybe.none)
+    expect(StringUtils.matcher2(/^(.*)$/)('some string')).toStrictEqual(option.none)
   })
 })

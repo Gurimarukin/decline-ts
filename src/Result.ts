@@ -1,8 +1,8 @@
-import { alt as Alt, semigroup as Semigroup, apply, eq } from 'fp-ts'
+import { alt as Alt, semigroup as Semigroup, apply, either, eq, option, readonlyArray } from 'fp-ts'
+import { Either } from 'fp-ts/Either'
 import { Lazy, flow, pipe } from 'fp-ts/function'
 
 import { Opts } from './Opts'
-import { Either, List, Maybe } from './utils/fp'
 import { StringUtils } from './utils/StringUtils'
 
 const URI_ = 'Result'
@@ -16,10 +16,12 @@ declare module 'fp-ts/HKT' {
 }
 
 export type Result<A> = {
-  readonly get: Either<Result.Failure, Lazy<Either<List<string>, A>>>
+  readonly get: Either<Result.Failure, Lazy<Either<ReadonlyArray<string>, A>>>
 }
 
-export function Result<A>(get: Either<Result.Failure, Lazy<Either<List<string>, A>>>): Result<A> {
+export function Result<A>(
+  get: Either<Result.Failure, Lazy<Either<ReadonlyArray<string>, A>>>,
+): Result<A> {
   return { get }
 }
 
@@ -27,10 +29,10 @@ export namespace Result {
   /**
    * Constructors
    */
-  export const success = <A>(value: A): Result<A> => Result(Either.right(() => Either.right(value)))
+  export const success = <A>(value: A): Result<A> => Result(either.right(() => either.right(value)))
 
-  export const failure = (reversedMissing: List<Missing>): Result<never> =>
-    Result(Either.left(Failure(reversedMissing)))
+  export const failure = (reversedMissing: ReadonlyArray<Missing>): Result<never> =>
+    Result(either.left(Failure(reversedMissing)))
 
   export const fail: Result<never> = failure([])
 
@@ -38,48 +40,48 @@ export namespace Result {
     failure([Missing({ commands: [command] })])
 
   export const missingFlag = (flag: Opts.Name): Result<never> =>
-    Result(Either.left(Failure(List.of(Missing({ flags: List.of(flag) })))))
+    Result(either.left(Failure(readonlyArray.of(Missing({ flags: readonlyArray.of(flag) })))))
 
   export const missingArgument: Result<never> = failure([Missing({ argument: true })])
 
   /**
    * Methods
    */
-  export const mapValidated = <A, B>(f: (a: A) => Either<List<string>, B>) => (
+  export const mapValidated = <A, B>(f: (a: A) => Either<ReadonlyArray<string>, B>) => (
     res: Result<A>,
   ): Result<B> =>
     pipe(
       res.get,
-      Either.map(_ => () => pipe(_(), Either.chain(f))),
+      either.map(_ => () => pipe(_(), either.chain(f))),
       Result,
     )
 
   export const map = <A, B>(f: (a: A) => B): ((fa: Result<A>) => Result<B>) =>
-    mapValidated(flow(f, Either.right))
+    mapValidated(flow(f, either.right))
 
   export const ap = <A, B>(fab: Result<(a: A) => B>) => (fa: Result<A>): Result<B> =>
     pipe(
       apply.sequenceT(failureValidation)(fab.get, fa.get),
-      Either.map(([fabGet, faGet]) => () =>
+      either.map(([fabGet, faGet]) => () =>
         pipe(
           apply.sequenceT(stringsValidation)(fabGet(), faGet()),
-          Either.map(([f, a]) => f(a)),
+          either.map(([f, a]) => f(a)),
         ),
       ),
       Result,
     )
 
   export const alt = <A>(that: Lazy<Result<A>>) => (fa: Result<A>): Result<A> => {
-    if (Either.isRight(fa.get)) return fa
+    if (either.isRight(fa.get)) return fa
     const y = that()
-    if (Either.isRight(y.get)) return y
+    if (either.isRight(y.get)) return y
 
-    if (List.isEmpty(y.get.left.reversedMissing)) return fa
-    if (List.isEmpty(fa.get.left.reversedMissing)) return y
+    if (readonlyArray.isEmpty(y.get.left.reversedMissing)) return fa
+    if (readonlyArray.isEmpty(fa.get.left.reversedMissing)) return y
 
     return pipe(
-      List.zip(fa.get.left.reversedMissing, y.get.left.reversedMissing),
-      List.map(([a, b]) => Missing.semigroup.concat(a, b)),
+      readonlyArray.zip(fa.get.left.reversedMissing, y.get.left.reversedMissing),
+      readonlyArray.map(([a, b]) => Missing.semigroup.concat(a, b)),
       failure,
     )
   }
@@ -101,35 +103,35 @@ export namespace Result {
    * Failure
    */
   export type Failure = {
-    readonly reversedMissing: List<Missing>
+    readonly reversedMissing: ReadonlyArray<Missing>
   }
 
-  export function Failure(reversedMissing: List<Missing>): Failure {
+  export function Failure(reversedMissing: ReadonlyArray<Missing>): Failure {
     return { reversedMissing }
   }
 
   export namespace Failure {
     export const semigroup: Semigroup.Semigroup<Failure> = {
       concat: (x: Failure, y: Failure): Failure =>
-        Failure(List.concat(y.reversedMissing, x.reversedMissing)),
+        Failure([...y.reversedMissing, ...x.reversedMissing]),
     }
 
-    export const messages = (f: Failure): List<string> =>
-      pipe(f.reversedMissing, List.reverse, List.map(Missing.message))
+    export const messages = (f: Failure): ReadonlyArray<string> =>
+      pipe(f.reversedMissing, readonlyArray.reverse, readonlyArray.map(Missing.message))
   }
 
   /**
    * Missing
    */
   export type Missing = {
-    readonly flags: List<Opts.Name>
-    readonly commands: List<string>
+    readonly flags: ReadonlyArray<Opts.Name>
+    readonly commands: ReadonlyArray<string>
     readonly argument: boolean
   }
 
   export function Missing({
-    flags = List.empty,
-    commands = List.empty,
+    flags = readonlyArray.empty,
+    commands = readonlyArray.empty,
     argument = false,
   }: Partial<Missing> = {}): Missing {
     return { flags, commands, argument }
@@ -139,31 +141,31 @@ export namespace Result {
     export const semigroup: Semigroup.Semigroup<Missing> = {
       concat: (x: Missing, y: Missing): Missing =>
         Missing({
-          commands: List.concat(x.commands, y.commands),
+          commands: [...x.commands, ...y.commands],
           argument: x.argument || y.argument,
         }),
     }
 
     export const message = (m: Missing): string => {
-      const commandString = List.isEmpty(m.commands)
-        ? Maybe.none
-        : Maybe.some(
+      const commandString = readonlyArray.isEmpty(m.commands)
+        ? option.none
+        : option.some(
             pipe(
               m.commands,
-              List.uniq(eq.eqString),
+              readonlyArray.uniq(eq.eqString),
               StringUtils.mkString('command (', ' or ', ')'),
             ),
           )
 
-      const argString = m.argument ? Maybe.some('positional argument') : Maybe.none
+      const argString = m.argument ? option.some('positional argument') : option.none
 
       return pipe(
-        List.compact([commandString, argString]),
+        readonlyArray.compact([commandString, argString]),
         StringUtils.mkString('Missing expected ', ', or ', ''),
       )
     }
   }
 
-  const failureValidation = Either.getValidation(Failure.semigroup)
-  const stringsValidation = Either.getValidation(List.getMonoid<string>())
+  const failureValidation = either.getValidation(Failure.semigroup)
+  const stringsValidation = either.getValidation(readonlyArray.getMonoid<string>())
 }

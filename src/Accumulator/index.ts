@@ -1,10 +1,13 @@
+import { either, readonlyArray, readonlyNonEmptyArray } from 'fp-ts'
+import { Either } from 'fp-ts/Either'
 import { flow, pipe } from 'fp-ts/function'
+import { Option } from 'fp-ts/Option'
+import { ReadonlyNonEmptyArray } from 'fp-ts/ReadonlyNonEmptyArray'
 
 import { Help } from '../Help'
 import { Opts } from '../Opts'
 import { Parser } from '../Parser'
 import { Result } from '../Result'
-import { Either, List, Maybe, NonEmptyArray } from '../utils/fp'
 import { ArgOut } from './ArgOut'
 import { Match } from './Match'
 import * as Ap from './types/Ap'
@@ -23,7 +26,7 @@ export const AccumulatorArgOut = ArgOut
 export type AccumulatorMatch<A> = Match<A>
 export const AccumulatorMatch = Match
 
-type Err<A> = Either<List<string>, A>
+type Err<A> = Either<ReadonlyArray<string>, A>
 
 // A extends Accumulator<B>
 type InstType<A, B> = {
@@ -37,10 +40,10 @@ type Accumulators<A> = {
   readonly [Pure.URI]: InstType<Pure.Pure<A>, A>
   readonly [Ap.URI]: InstType<Ap.Ap<unknown, A>, A>
   readonly [OrElse.URI]: InstType<OrElse.OrElse<A>, A>
-  readonly [Regular.URI]: InstType<Regular.Regular, NonEmptyArray<string>>
-  readonly [Flag.URI]: InstType<Flag.Flag, NonEmptyArray<void>>
+  readonly [Regular.URI]: InstType<Regular.Regular, ReadonlyNonEmptyArray<string>>
+  readonly [Flag.URI]: InstType<Flag.Flag, ReadonlyNonEmptyArray<void>>
   readonly [Argument.URI]: InstType<Argument.Argument, string>
-  readonly [Arguments.URI]: InstType<Arguments.Arguments, NonEmptyArray<string>>
+  readonly [Arguments.URI]: InstType<Arguments.Arguments, ReadonlyNonEmptyArray<string>>
   readonly [Subcommand.URI]: InstType<Subcommand.Subcommand<A>, A>
   readonly [Validate.URI]: InstType<Validate.Validate<unknown, A>, A>
 }
@@ -49,7 +52,7 @@ export type AccumulatorHKT<URI extends Accumulator.URIS> = {
   readonly URI: URI
   readonly parseOption: (
     name: Opts.Name,
-  ) => <A>(fa: InstanceKind<URI, A>) => Maybe<Match<Accumulator<InnerTypeKind<URI, A>>>>
+  ) => <A>(fa: InstanceKind<URI, A>) => Option<Match<Accumulator<InnerTypeKind<URI, A>>>>
   readonly parseArg?: (
     arg: string,
   ) => <A>(fa: InstanceKind<URI, A>) => ArgOut<InnerTypeKind<URI, A>>
@@ -57,7 +60,7 @@ export type AccumulatorHKT<URI extends Accumulator.URIS> = {
     command: string,
   ) => <A>(
     fa: InstanceKind<URI, A>,
-  ) => Maybe<(opts: List<string>) => Either<Help, Result<InnerTypeKind<URI, A>>>>
+  ) => Option<(opts: ReadonlyArray<string>) => Either<Help, Result<InnerTypeKind<URI, A>>>>
   readonly result: <A>(fa: InstanceKind<URI, A>) => Result<InnerTypeKind<URI, A>>
 }
 
@@ -100,7 +103,7 @@ export namespace Accumulator {
       case 'HelpFlag':
         return pipe(
           fromOpts(opts.flag),
-          mapValidated(() => Either.left(List.empty)),
+          mapValidated(() => either.left(readonlyArray.empty)),
         )
     }
   }
@@ -109,20 +112,20 @@ export namespace Accumulator {
       case 'Regular':
         return pipe(
           Regular.of(opt.names) as Accumulator<InnerTypeKind<Regular.URI, A>>, // TODO: cast bad.
-          map(NonEmptyArray.last),
+          map(readonlyNonEmptyArray.last),
         )
 
       case 'Flag':
         return pipe(
           Flag.of(opt.names) as Accumulator<InnerTypeKind<Flag.URI, A>>, // TODO: cast bad.
-          map(NonEmptyArray.last),
+          map(readonlyNonEmptyArray.last),
         )
 
       case 'Argument':
         return Argument.of
     }
   }
-  const fromRepeated = <A>(opt: Opts.Opt<A>): Accumulator<NonEmptyArray<unknown>> => {
+  const fromRepeated = <A>(opt: Opts.Opt<A>): Accumulator<ReadonlyNonEmptyArray<unknown>> => {
     switch (opt._tag) {
       case 'Regular':
         return Regular.of(opt.names)
@@ -152,21 +155,21 @@ export namespace Accumulator {
    */
   export const parseOption = (name: Opts.Name) => <A>(
     fa: Accumulator<A>,
-  ): Maybe<Match<Accumulator<A>>> =>
-    pipe(fa, withMethod(fa._tag, 'parseOption')(name)) as Maybe<Match<Accumulator<A>>>
+  ): Option<Match<Accumulator<A>>> =>
+    pipe(fa, withMethod(fa._tag, 'parseOption')(name)) as Option<Match<Accumulator<A>>>
 
   export const parseArg = (arg: string) => <A>(fa: Accumulator<A>): ArgOut<A> => {
     const method = withMethod(fa._tag, 'parseArg')
     return method === undefined
-      ? NonEmptyArray.of(Either.left(fa))
+      ? readonlyNonEmptyArray.of(either.left(fa))
       : (pipe(fa, method(arg)) as ArgOut<A>)
   }
 
   export const parseSub = (command: string) => <A>(
     fa: Accumulator<A>,
-  ): Maybe<(opts: List<string>) => Either<Help, Result<A>>> =>
-    pipe(fa, withMethod(fa._tag, 'parseSub')(command)) as Maybe<
-      (opts: List<string>) => Either<Help, Result<A>>
+  ): Option<(opts: ReadonlyArray<string>) => Either<Help, Result<A>>> =>
+    pipe(fa, withMethod(fa._tag, 'parseSub')(command)) as Option<
+      (opts: ReadonlyArray<string>) => Either<Help, Result<A>>
     >
 
   export const result = <A>(fa: Accumulator<A>): Result<A> =>
@@ -176,7 +179,7 @@ export namespace Accumulator {
     Validate.of(fa, f) as Accumulator<B>
 
   export const map = <A, B>(f: (a: A) => B): ((fa: Accumulator<A>) => Accumulator<B>) =>
-    mapValidated(flow(f, Either.right))
+    mapValidated(flow(f, either.right))
 }
 
 const withMethod = <URI extends Accumulator.URIS, Method extends keyof AccumulatorHKT<URI>>(

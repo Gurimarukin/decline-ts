@@ -1,16 +1,18 @@
-import { eq } from 'fp-ts'
+import { either, eq, option, readonlyArray, readonlyNonEmptyArray } from 'fp-ts'
+import { Either } from 'fp-ts/Either'
 import { flow, pipe } from 'fp-ts/function'
+import { Option } from 'fp-ts/Option'
 
 import { Accumulator, AccumulatorArgOut, AccumulatorMatch } from './Accumulator/index'
 import { Command } from './Command'
 import { Help } from './Help'
 import { Opts } from './Opts'
 import { Result } from './Result'
-import { Either, List, Maybe, NonEmptyArray, NonEmptyString, Tuple } from './utils/fp'
+import { NonEmptyString } from './utils/fp'
 import { StringUtils, s } from './utils/StringUtils'
 
-const nonEmptyString = (str: string): Maybe<Tuple<NonEmptyString, string>> =>
-  StringUtils.isNonEmpty(str) ? Maybe.some([str[0], str.substring(1)]) : Maybe.none
+const nonEmptyString = (str: string): Option<readonly [NonEmptyString, string]> =>
+  StringUtils.isNonEmpty(str) ? option.some([str[0], str.substring(1)]) : option.none
 
 const regex = {
   longOpt: /^--(.+)$/,
@@ -18,111 +20,116 @@ const regex = {
   shortOpt: /^-(.+)$/,
 }
 
-export const longOpt: (str: string) => Maybe<string> = StringUtils.matcher1(regex.longOpt)
+export const longOpt: (str: string) => Option<string> = StringUtils.matcher1(regex.longOpt)
 export const longOptWithEquals: (
   str: string,
-) => Maybe<Tuple<string, string>> = StringUtils.matcher2(regex.longOptWithEquals)
-export const shortOpt: (str: string) => Maybe<Tuple<string, string>> = flow(
+) => Option<readonly [string, string]> = StringUtils.matcher2(regex.longOptWithEquals)
+export const shortOpt: (str: string) => Option<readonly [string, string]> = flow(
   StringUtils.matcher1(regex.shortOpt),
-  Maybe.chain(nonEmptyString),
+  option.chain(nonEmptyString),
 )
 
-export type Parser<A> = (args: List<string>) => Either<Help, A>
+export type Parser<A> = (args: ReadonlyArray<string>) => Either<Help, A>
 
 export const Parser = <A>(command: Command<A>): Parser<A> => {
   const help = Help.fromCommand(command)
 
   return args => consumeAll(args, Accumulator.fromOpts(command.opts))
 
-  function failure<B>(...reasons: List<string>): Either<Help, B> {
-    return Either.left(pipe(help, Help.withErrors(reasons)))
+  function failure<B>(...reasons: ReadonlyArray<string>): Either<Help, B> {
+    return either.left(pipe(help, Help.withErrors(reasons)))
   }
 
   function evalResult<B>(out: Result<B>): Either<Help, B> {
     return pipe(
       out.get,
-      Either.fold(
-        failed => failure(...pipe(failed, Result.Failure.messages, List.uniq(eq.eqString))),
+      either.fold(
+        failed =>
+          failure(...pipe(failed, Result.Failure.messages, readonlyArray.uniq(eq.eqString))),
         // NB: if any of the user-provided functions have side-effects, they will happen here!
         fn =>
           pipe(
             fn(),
-            Either.fold(
-              messages => failure(...pipe(messages, List.uniq(eq.eqString))),
-              result => Either.right(result),
+            either.fold(
+              messages => failure(...pipe(messages, readonlyArray.uniq(eq.eqString))),
+              result => either.right(result),
             ),
           ),
       ),
     )
   }
 
-  function toOption<B>(args: AccumulatorArgOut<B>): Maybe<Accumulator<B>> {
+  function toOption<B>(args: AccumulatorArgOut<B>): Option<Accumulator<B>> {
     return pipe(
       args,
-      List.filterMap(Maybe.fromEither),
-      NonEmptyArray.fromReadonlyArray,
-      Maybe.map(([head, ...tail]) => pipe(tail, List.reduce(head, Accumulator.orElse))),
+      readonlyArray.filterMap(option.fromEither),
+      readonlyNonEmptyArray.fromReadonlyArray,
+      option.map(([head, ...tail]) => pipe(tail, readonlyArray.reduce(head, Accumulator.orElse))),
     )
   }
 
-  function consumeAll(args: List<string>, accumulator: Accumulator<A>): Either<Help, A> {
+  function consumeAll(args: ReadonlyArray<string>, accumulator: Accumulator<A>): Either<Help, A> {
     const [arg, ...tail] = args
 
     if (arg === undefined) return evalResult(Accumulator.result(accumulator))
 
     return pipe(
-      pipe(longOptWithEquals(arg), Maybe.map(consumeLongOptWithEquals(tail, accumulator))),
-      Maybe.alt(() => pipe(longOpt(arg), Maybe.map(consumeLongOpt(tail, accumulator)))),
-      Maybe.alt(() => (arg === '--' ? Maybe.some(consumeArgs(tail, accumulator)) : Maybe.none)),
-      Maybe.alt(() => pipe(shortOpt(arg), Maybe.map(consumeShortOpt(tail, accumulator)))),
-      Maybe.getOrElse(() => consumeDefault(arg, tail, accumulator)),
+      pipe(longOptWithEquals(arg), option.map(consumeLongOptWithEquals(tail, accumulator))),
+      option.alt(() => pipe(longOpt(arg), option.map(consumeLongOpt(tail, accumulator)))),
+      option.alt(() => (arg === '--' ? option.some(consumeArgs(tail, accumulator)) : option.none)),
+      option.alt(() => pipe(shortOpt(arg), option.map(consumeShortOpt(tail, accumulator)))),
+      option.getOrElse(() => consumeDefault(arg, tail, accumulator)),
     )
   }
 
   function consumeLongOptWithEquals(
-    tail: List<string>,
+    tail: ReadonlyArray<string>,
     accumulator: Accumulator<A>,
-  ): (match: Tuple<string, string>) => Either<Help, A> {
-    return ([option, value]) =>
+  ): (match: readonly [string, string]) => Either<Help, A> {
+    return ([o, value]) =>
       pipe(
         accumulator,
-        Accumulator.parseOption(Opts.Name.longName(option)),
-        Maybe.fold(
+        Accumulator.parseOption(Opts.Name.longName(o)),
+        option.fold(
           () =>
-            Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: --${option}`)))),
+            either.left(
+              pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: --${o}`))),
+            ),
           AccumulatorMatch.fold({
-            onFlag: () => failure(s`Got unexpected value for flag: --${option}`),
+            onFlag: () => failure(s`Got unexpected value for flag: --${o}`),
             onOption: next => consumeAll(tail, next(value)),
-            onAmbiguous: () => failure(s`Ambiguous option/flag: --${option}`),
+            onAmbiguous: () => failure(s`Ambiguous option/flag: --${o}`),
           }),
         ),
       )
   }
 
   function consumeLongOpt(
-    rest: List<string>,
+    rest: ReadonlyArray<string>,
     accumulator: Accumulator<A>,
   ): (match: string) => Either<Help, A> {
-    return option =>
+    return o =>
       pipe(
         accumulator,
-        Accumulator.parseOption(Opts.Name.longName(option)),
-        Maybe.fold(
+        Accumulator.parseOption(Opts.Name.longName(o)),
+        option.fold(
           () =>
-            Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: --${option}`)))),
+            either.left(
+              pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: --${o}`))),
+            ),
           AccumulatorMatch.fold({
             onFlag: next => consumeAll(rest, next),
             onOption: next =>
-              List.isNonEmpty(rest)
+              readonlyArray.isNonEmpty(rest)
                 ? pipe(rest, ([h, ...t]) => consumeAll(t, next(h)))
-                : failure(s`Missing value for option: --${option}`),
-            onAmbiguous: () => failure(s`Ambiguous option/flag: --${option}`),
+                : failure(s`Missing value for option: --${o}`),
+            onAmbiguous: () => failure(s`Ambiguous option/flag: --${o}`),
           }),
         ),
       )
   }
 
-  function consumeArgs(args: List<string>, accumulator: Accumulator<A>): Either<Help, A> {
+  function consumeArgs(args: ReadonlyArray<string>, accumulator: Accumulator<A>): Either<Help, A> {
     const [arg, ...tail] = args
 
     if (arg === undefined) return evalResult(Accumulator.result(accumulator))
@@ -131,7 +138,7 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
       accumulator,
       Accumulator.parseArg(arg),
       toOption,
-      Maybe.fold(
+      option.fold(
         () => failure(s`Unexpected argument: ${arg}`),
         next => consumeArgs(tail, next),
       ),
@@ -139,45 +146,58 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
   }
 
   function consumeShortOpt(
-    rest: List<string>,
+    rest: ReadonlyArray<string>,
     accumulator: Accumulator<A>,
-  ): (match: Tuple<string, string>) => Either<Help, A> {
+  ): (match: readonly [string, string]) => Either<Help, A> {
     return ([flag, tail]) => {
       return pipe(
         consumeShort(flag, tail, accumulator),
-        Either.chain(([newRest, newAccumulator]) => consumeAll(newRest, newAccumulator)),
+        either.chain(([newRest, newAccumulator]) => consumeAll(newRest, newAccumulator)),
       )
 
       function consumeShort(
         char: string,
         tail2: string,
         accumulator2: Accumulator<A>,
-      ): Either<Help, Tuple<List<string>, Accumulator<A>>> {
+      ): Either<Help, readonly [ReadonlyArray<string>, Accumulator<A>]> {
         return pipe(
           accumulator2,
           Accumulator.parseOption(Opts.Name.shortName(char)),
-          Maybe.fold(
-            () => Either.left(pipe(help, Help.withErrors(List.of(s`Unexpected option: -${char}`)))),
+          option.fold(
+            () =>
+              either.left(
+                pipe(help, Help.withErrors(readonlyArray.of(s`Unexpected option: -${char}`))),
+              ),
             AccumulatorMatch.fold({
               onFlag: next =>
                 pipe(
                   nonEmptyString(tail2),
-                  Maybe.fold(
-                    () => Either.right([rest, next] as Tuple<List<string>, Accumulator<A>>),
+                  option.fold(
+                    () =>
+                      either.right([rest, next] as readonly [
+                        ReadonlyArray<string>,
+                        Accumulator<A>,
+                      ]),
                     ([nextFlag, nextTail]) => consumeShort(nextFlag, nextTail, next),
                   ),
                 ),
               onOption: next =>
                 StringUtils.isEmpty(tail2)
                   ? pipe(
-                      NonEmptyArray.fromReadonlyArray(rest),
-                      Maybe.fold(
+                      readonlyNonEmptyArray.fromReadonlyArray(rest),
+                      option.fold(
                         () => failure(s`Missing value for option: -${char}`),
                         ([v, ...r]) =>
-                          Either.right([r, next(v)] as Tuple<List<string>, Accumulator<A>>),
+                          either.right([r, next(v)] as readonly [
+                            ReadonlyArray<string>,
+                            Accumulator<A>,
+                          ]),
                       ),
                     )
-                  : Either.right([rest, next(tail2)] as Tuple<List<string>, Accumulator<A>>),
+                  : either.right([rest, next(tail2)] as readonly [
+                      ReadonlyArray<string>,
+                      Accumulator<A>,
+                    ]),
               onAmbiguous: () => failure(s`Ambiguous option/flag: -${char}`),
             }),
           ),
@@ -188,19 +208,19 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
 
   function consumeDefault(
     arg: string,
-    tail: List<string>,
+    tail: ReadonlyArray<string>,
     accumulator: Accumulator<A>,
   ): Either<Help, A> {
     return pipe(
       accumulator,
       Accumulator.parseSub(arg),
-      Maybe.fold(
+      option.fold(
         () =>
           pipe(
             accumulator,
             Accumulator.parseArg(arg),
             toOption,
-            Maybe.fold(
+            option.fold(
               () => failure(s`Unexpected argument: ${arg}`),
               next => consumeAll(tail, next),
             ),
@@ -208,8 +228,8 @@ export const Parser = <A>(command: Command<A>): Parser<A> => {
         result =>
           pipe(
             result(tail),
-            Either.mapLeft(Help.withPrefix(List.of(command.name))),
-            Either.chain(evalResult),
+            either.mapLeft(Help.withPrefix(readonlyArray.of(command.name))),
+            either.chain(evalResult),
           ),
       ),
     )

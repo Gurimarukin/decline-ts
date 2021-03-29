@@ -1,8 +1,9 @@
+import { option, readonlyArray, readonlyNonEmptyArray } from 'fp-ts'
 import { pipe } from 'fp-ts/function'
+import { ReadonlyNonEmptyArray } from 'fp-ts/ReadonlyNonEmptyArray'
 
 import { Opts } from '../../Opts'
 import { Result } from '../../Result'
-import { List, Maybe, NonEmptyArray } from '../../utils/fp'
 import { AccumulatorHKT } from '../index'
 import { Match } from '../Match'
 
@@ -11,11 +12,14 @@ export type URI = typeof URI
 
 export type Regular = {
   readonly _tag: URI
-  readonly names: List<Opts.Name>
-  readonly values: List<string>
+  readonly names: ReadonlyArray<Opts.Name>
+  readonly values: ReadonlyArray<string>
 }
 
-export const of = (names: List<Opts.Name>, values: List<string> = []): Regular => ({
+export const of = (
+  names: ReadonlyArray<Opts.Name>,
+  values: ReadonlyArray<string> = [],
+): Regular => ({
   _tag: URI,
   names,
   values,
@@ -24,18 +28,18 @@ export const of = (names: List<Opts.Name>, values: List<string> = []): Regular =
 export const regular: AccumulatorHKT<URI> = {
   URI,
   parseOption: name => fa =>
-    List.elem(Opts.Name.eq)(name, fa.names)
-      ? Maybe.some(Match.matchOption(v => of(fa.names, List.cons(v, fa.values))))
-      : Maybe.none,
+    readonlyArray.elem(Opts.Name.eq)(name, fa.names)
+      ? option.some(Match.matchOption(v => of(fa.names, readonlyArray.cons(v, fa.values))))
+      : option.none,
 
-  parseSub: () => () => Maybe.none,
+  parseSub: () => () => option.none,
 
   result: fa =>
     pipe(
       fa.values,
-      List.reverse,
-      NonEmptyArray.fromReadonlyArray,
-      Maybe.map(Result.success),
-      Maybe.getOrElse<Result<NonEmptyArray<string>>>(() => Result.fail),
+      readonlyArray.reverse,
+      readonlyNonEmptyArray.fromReadonlyArray,
+      option.map(Result.success),
+      option.getOrElse<Result<ReadonlyNonEmptyArray<string>>>(() => Result.fail),
     ),
 }

@@ -3,4 +3,4 @@ Composable command-line parser for TypeScript - a (partial) porting of Scala [de
 
 ## Examples
 
-More examples in [test/examples/](./test/examples/)
+See examples in [test/examples/](./test/examples/)

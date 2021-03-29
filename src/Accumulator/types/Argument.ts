@@ -1,5 +1,6 @@
+import { either, option, readonlyNonEmptyArray } from 'fp-ts'
+
 import { Result } from '../../Result'
-import { Either, Maybe, NonEmptyArray } from '../../utils/fp'
 import { AccumulatorHKT } from '../index'
 import * as Pure from './Pure'
 
@@ -15,11 +16,11 @@ export const of: Argument = { _tag: URI }
 export const argument: AccumulatorHKT<URI> = {
   URI,
 
-  parseOption: () => () => Maybe.none,
+  parseOption: () => () => option.none,
 
-  parseArg: arg => () => NonEmptyArray.of(Either.right(Pure.of(Result.success(arg)))),
+  parseArg: arg => () => readonlyNonEmptyArray.of(either.right(Pure.of(Result.success(arg)))),
 
-  parseSub: () => () => Maybe.none,
+  parseSub: () => () => option.none,
 
   result: () => Result.missingArgument,
 }
